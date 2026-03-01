@@ -169,6 +169,8 @@ npx @modelcontextprotocol/inspector
 - **Arguments:** `C:\Users\User\Desktop\downloads-warden\run_server.py`
 - **Environment Variables:** (השאר ריק)
 
+**⚠️ חשוב:** שנה את הנתיבים בהתאם למיקום שלך!
+
 לחץ **Connect** ובדוק שכל 8 הכלים מופיעים.
 
 ---
