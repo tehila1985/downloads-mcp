@@ -1,7 +1,7 @@
 from fastmcp import FastMCP
 from typing import Optional
 from .services.scanner import scan_downloads
-from .services.sorter import smart_sort_files
+from .services.sorter import smart_sort_files, sort_by_date
 from .services.deduplicator import deduplicate_by_hash, deduplicate_folders
 from .services.extractor import auto_extract_and_cleanup
 from .services.cleaner import clear_installers, find_large_files
@@ -17,6 +17,11 @@ def scan_downloads_tool(folder_path: Optional[str] = None) -> dict:
 def smart_sort_files_tool(folder_path: Optional[str] = None, dry_run: bool = False) -> dict:
     """Sort files into categories: Documents, Media, Installers, Code, Archives, Other."""
     return smart_sort_files(folder_path, dry_run)
+
+@mcp.tool()
+def sort_by_date_tool(folder_path: Optional[str] = None, dry_run: bool = False) -> dict:
+    """Sort files into folders by year-month (YYYY-MM) based on modification date."""
+    return sort_by_date(folder_path, dry_run)
 
 @mcp.tool()
 def deduplicate_by_hash_tool(folder_path: Optional[str] = None, dry_run: bool = False) -> dict:

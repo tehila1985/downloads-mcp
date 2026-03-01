@@ -1,5 +1,6 @@
 from pathlib import Path
 import shutil
+from datetime import datetime
 from ..utils import get_downloads_folder
 
 def smart_sort_files(folder_path: str = None, dry_run: bool = False) -> dict:
@@ -39,5 +40,32 @@ def smart_sort_files(folder_path: str = None, dry_run: bool = False) -> dict:
                 shutil.move(str(item), str(target_path))
             
             moved[str(item)] = str(target_dir / item.name) if not dry_run else f"Would move to {category}"
+    
+    return {"moved_files": len(moved), "details": moved}
+
+def sort_by_date(folder_path: str = None, dry_run: bool = False) -> dict:
+    downloads = Path(folder_path) if folder_path else get_downloads_folder()
+    
+    if not downloads.exists():
+        raise FileNotFoundError(f"Downloads folder not found: {downloads}")
+    
+    moved = {}
+    
+    for item in downloads.iterdir():
+        if item.is_file():
+            mtime = datetime.fromtimestamp(item.stat().st_mtime)
+            year_month = mtime.strftime("%Y-%m")
+            
+            target_dir = downloads / year_month
+            if not dry_run:
+                target_dir.mkdir(exist_ok=True)
+                target_path = target_dir / item.name
+                counter = 1
+                while target_path.exists():
+                    target_path = target_dir / f"{item.stem}_{counter}{item.suffix}"
+                    counter += 1
+                shutil.move(str(item), str(target_path))
+            
+            moved[str(item)] = str(target_dir / item.name) if not dry_run else f"Would move to {year_month}"
     
     return {"moved_files": len(moved), "details": moved}
