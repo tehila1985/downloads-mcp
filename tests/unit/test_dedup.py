@@ -53,6 +53,17 @@ class TestDeduplicateFilesUseCase:
         DeduplicateFilesUseCase(repo).execute(tmp_path, dry_run=True)
         repo.delete_file.assert_not_called()
 
+    def test_hash_error_is_recorded_not_raised(self, tmp_path: Path) -> None:
+        """A file that cannot be hashed is skipped; the error is captured in 'errors'."""
+        from src.domain.exceptions import HashComputationError
+        f = tmp_path / "locked.bin"
+        repo = _mock_repo(files=[f])
+        repo.compute_hash.side_effect = HashComputationError(str(f), OSError("permission denied"))
+        result = DeduplicateFilesUseCase(repo).execute(tmp_path, dry_run=True)
+        assert result["removed_count"] == 0
+        assert len(result["errors"]) == 1
+        assert "locked.bin" in result["errors"][0]
+
 
 class TestDeduplicateFoldersUseCase:
     def test_identical_folders_removes_newer(self, tmp_path: Path) -> None:
@@ -74,3 +85,20 @@ class TestDeduplicateFoldersUseCase:
 
         result = DeduplicateFoldersUseCase(repo).execute(tmp_path, dry_run=True)
         assert result["removed_count"] == 1
+
+    def test_folder_hash_error_is_recorded_not_raised(self, tmp_path: Path) -> None:
+        """A folder whose files cannot be hashed is skipped; error goes into 'errors'."""
+        from src.domain.exceptions import HashComputationError
+        d = tmp_path / "bad_folder"
+        d.mkdir()
+        f = d / "file.bin"
+
+        repo = MagicMock(spec=BaseFileRepository)
+        repo.exists.return_value = True
+        repo.list_dirs.return_value = [d]
+        repo.list_files.return_value = [f]
+        repo.compute_hash.side_effect = HashComputationError(str(f), OSError("locked"))
+
+        result = DeduplicateFoldersUseCase(repo).execute(tmp_path, dry_run=True)
+        assert result["removed_count"] == 0
+        assert len(result["errors"]) == 1

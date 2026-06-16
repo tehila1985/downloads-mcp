@@ -1,9 +1,10 @@
 from __future__ import annotations
 from abc import ABC
+from datetime import datetime
 from pathlib import Path
 
 from src.domain.events import FileMoved, bus
-from src.domain.exceptions import FolderNotFoundError
+from src.domain.exceptions import CollisionError, FolderNotFoundError
 from src.domain.strategies import SortStrategy
 from src.infrastructure.file_repository import BaseFileRepository
 
@@ -12,9 +13,14 @@ class BaseSortUseCase(ABC):
     """
     Template Method: validate → list → categorise → resolve collision → move.
     Subclasses only need to provide the concrete SortStrategy.
+
+    Collision strategy (in order):
+      1. document.pdf already exists  →  document_1.pdf, document_2.pdf … document_99.pdf
+      2. Still taken after 99 tries   →  document_20250101_153045_123456.pdf  (timestamp)
+      3. Timestamp slot also taken    →  raise CollisionError (extremely unlikely)
     """
 
-    MAX_COLLISION_RETRIES: int = 9999
+    _COUNTER_LIMIT: int = 99
 
     def __init__(self, repo: BaseFileRepository, strategy: SortStrategy) -> None:
         self._repo = repo
@@ -41,9 +47,17 @@ class BaseSortUseCase(ABC):
         return {"moved_files": len(moved), "details": moved}
 
     def _resolve_collision(self, target_dir: Path, file: Path) -> Path:
+        # Phase 1: sequential counter  →  stem_1.ext … stem_99.ext
         target = target_dir / file.name
-        counter = 1
-        while self._repo.exists(target) and counter <= self.MAX_COLLISION_RETRIES:
+        for counter in range(1, self._COUNTER_LIMIT + 1):
+            if not self._repo.exists(target):
+                return target
             target = target_dir / f"{file.stem}_{counter}{file.suffix}"
-            counter += 1
-        return target
+
+        # Phase 2: microsecond timestamp  →  stem_20250101_153045_123456.ext
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        target = target_dir / f"{file.stem}_{ts}{file.suffix}"
+        if not self._repo.exists(target):
+            return target
+
+        raise CollisionError(str(file), str(target))

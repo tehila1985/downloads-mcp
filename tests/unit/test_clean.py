@@ -46,6 +46,16 @@ class TestClearInstallersUseCase:
         ClearInstallersUseCase(repo).execute(tmp_path, days_old=1, dry_run=True)
         repo.delete_file.assert_not_called()
 
+    def test_real_run_deletes_file(self, tmp_path: Path) -> None:
+        """Covers the delete_file + bus.publish branch (lines 33-34)."""
+        f = tmp_path / "old.exe"
+        f.touch()
+        import os; os.utime(f, (0, 0))
+        repo = _mock_repo(files=[f])
+        result = ClearInstallersUseCase(repo).execute(tmp_path, days_old=1, dry_run=False)
+        repo.delete_file.assert_called_once_with(f)
+        assert result["removed_count"] == 1
+
 
 class TestFindLargeFilesUseCase:
     def test_raises_when_folder_missing(self, tmp_path: Path) -> None:

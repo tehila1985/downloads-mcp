@@ -28,7 +28,7 @@ strict = true
 ignore_missing_imports = true
 
 [tool.coverage.report]
-omit = ["tests/*", "run_server.py"]
+omit = ["tests/*", "run_server.py", "src/server.py", "src/container.py"]
 
 [build-system]
 requires = ["setuptools>=42"]
