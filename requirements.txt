@@ -1,2 +1,4 @@
+# Dependencies are managed via pyproject.toml.
+# To install: pip install -e ".[dev]"
 fastmcp>=0.1.0
 pydantic>=2.0.0
